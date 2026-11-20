@@ -10,7 +10,7 @@
   const panels = [];
   let currentSource = null;
   let activeVideos = [];
-  let syncingSeek = false;
+  const programmaticSeeks = new WeakSet();
 
   const youtubeHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be', 'youtube-nocookie.com']);
   const facebookHosts = new Set(['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.watch', 'www.fb.watch', 'web.facebook.com']);
@@ -110,10 +110,21 @@
       video.preload = 'metadata';
       video.addEventListener('playing', () => { status.textContent = 'PLAYING'; status.className = 'player-status playing'; });
       video.addEventListener('seeked', () => {
-        if (syncingSeek || activeVideos.length < 2) return;
-        syncingSeek = true;
-        activeVideos.forEach(other => { if (other !== video && Number.isFinite(video.currentTime)) { try { other.currentTime = video.currentTime; } catch (_) {} } });
-        syncingSeek = false;
+        if (programmaticSeeks.has(video)) {
+          programmaticSeeks.delete(video);
+          return;
+        }
+        if (activeVideos.length < 2 || !Number.isFinite(video.currentTime)) return;
+        activeVideos.forEach(other => {
+          if (other !== video) {
+            try {
+              programmaticSeeks.add(other);
+              other.currentTime = video.currentTime;
+            } catch (_) {
+              programmaticSeeks.delete(other);
+            }
+          }
+        });
       });
       video.addEventListener('waiting', () => { status.textContent = 'BUFFERING'; status.className = 'player-status'; });
       video.addEventListener('error', () => { status.textContent = 'LOAD ERROR'; status.className = 'player-status failed'; });
