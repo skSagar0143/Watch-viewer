@@ -141,7 +141,14 @@
         thumbnail.alt = 'YouTube video thumbnail';
         thumbnail.loading = 'lazy';
         thumbnail.src = 'https://i.ytimg.com/vi/' + encodeURIComponent(currentSource.id) + '/hqdefault.jpg';
-        thumbnail.onerror = () => { thumbnail.hidden = true; };
+        thumbnail.onerror = () => {
+          if (!thumbnail.dataset.fallbackTried) {
+            thumbnail.dataset.fallbackTried = 'true';
+            thumbnail.src = 'https://i.ytimg.com/vi/' + encodeURIComponent(currentSource.id) + '/0.jpg';
+          } else {
+            thumbnail.hidden = true;
+          }
+        };
         visual.append(thumbnail);
       }
       const overlay = document.createElement('div');
@@ -219,7 +226,7 @@
       updateMetrics(elapsed);
       if (source.platform === 'mp4') {
         $('syncStatus').textContent = requested + ' authorized-file players loaded';
-        showMessage(requested + ' real video players created using your supplied video file. Use Play all / Pause all / Restart all to control them together. Muted='
+        showMessage(requested + ' real video players created using your supplied video file. Use Play all / Pause all / Restart all to control them together. Muted=' +
           (muteInput.value === 'true') + ', loop=' + (loopInput.value === 'true') +
           '. Autoplay may be blocked by browser/device limits; use each player control if needed.');
       } else {
