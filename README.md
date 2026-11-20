@@ -1,20 +1,28 @@
-# Watch Viewer — Video Playback QA
+# Watch Viewer — YouTube Playback QA
 
-A lightweight Spring Boot video playback quality-assurance dashboard. It is designed for testing a single video stream in a user-controlled browser session—not for generating artificial views, traffic, or engagement.
+A Spring Boot dashboard for testing one embedded YouTube video in one user-controlled browser session.
 
 ## Features
-- Validate an HTTP(S) video URL before loading it.
-- Play a direct MP4, WebM, or Ogg video in one HTML5 player.
-- Manually test pause, seek, mute, playback speed, and optional looping.
-- Select a target browser profile to display compatibility notes (the app cannot remotely launch or control installed browsers).
-- Monitor playback state, elapsed time, duration, and media errors.
-- Responsive dashboard with no database or external service required.
+- Accept YouTube watch, youtu.be, Shorts, and live-video URLs.
+- Load a single embedded player using the official YouTube IFrame Player API.
+- Run a bounded playback test for 1 minute, 5 minutes, 30 minutes, or 1 hour.
+- Automatically pause the player when the selected test duration expires.
+- Manually reload the embedded player for troubleshooting; playback does not automatically restart.
+- Select a browser compatibility profile and view guidance for running the app in that browser.
+- Monitor player state, video time, duration, and playback errors.
+- Review and clear a timestamped event log.
 
-> YouTube watch-page URLs are not direct media files and are not supported by the HTML5 player. Use a video file URL hosted on a server that permits browser playback and CORS/range requests where applicable.
+## Important usage boundaries
+- This is a single-player QA tool. It does not open multiple tabs or launch/control other browsers.
+- It does not automate looping, refreshing, or repeated playback sessions, and it is not designed to generate views, watch time, or engagement.
+- The browser profile selector is informational. To test another browser, open this app manually in that browser.
+- Some YouTube videos disable embedding or have regional, age, or account restrictions. Those videos may not play in the embedded player.
+- YouTube's own player controls and policies remain in effect.
 
 ## Requirements
 - Java 21+
 - Maven 3.9+
+- Internet connection to load the YouTube IFrame Player API and embedded video.
 
 ## Run
 ```bash
@@ -27,13 +35,6 @@ Or build and run:
 mvn clean package
 java -jar target/watch-viewer-1.0.0.jar
 ```
-
-## Notes
-- Playback begins only after the user presses **Load & Play**.
-- Only one player is created. The app does not open tabs/windows or automate browsers.
-- Loop mode is a normal HTML5 media-player QA option and should be used only to test playback behavior.
-- Browser selection is a compatibility-profile selector, not a remote browser launcher.
-- The backend validates URL syntax and scheme only; it does not fetch the supplied URL, avoiding server-side request forgery risks.
 
 ## Project structure
 - `src/main/java/com/watchviewer/WatchViewerApplication.java`
