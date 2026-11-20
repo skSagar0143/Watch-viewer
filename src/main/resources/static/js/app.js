@@ -206,7 +206,6 @@
 
     startButton.addEventListener('click', () => {
         if (!player) return;
-        if (sessionDeadline === null) startCountdown();
         player.playVideo();
         stopButton.disabled = false;
         startButton.disabled = true;
