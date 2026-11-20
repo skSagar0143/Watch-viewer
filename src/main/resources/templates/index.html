@@ -54,17 +54,18 @@
         <div class="panel-heading"><div><span class="step">02</span><h3>Generated test panels</h3></div><span id="panelCount" class="count">0 PANELS</span></div>
         <div class="grid-tools"><label for="density">Panel density</label><select id="density"><option value="compact" selected>Compact</option><option value="comfortable">Comfortable</option></select><button id="clearPanels" class="btn subtle" disabled>Clear panels</button></div>
       </div>
+      <div id="multiControls" class="multi-controls" hidden><span>SYNC CONTROLS</span><button id="playAll" class="btn subtle">Play all</button><button id="pauseAll" class="btn subtle">Pause all</button><button id="restartAll" class="btn subtle">Restart all</button><small id="syncStatus">Ready to synchronize authorized-file players</small></div>
       <div id="playerGrid" class="player-grid empty-grid">
         <div class="empty-workspace"><div class="empty-symbol">▦</div><h4>No test panels generated</h4><p>Choose an authorized video file for real multi-screen playback, or a platform link for a simulated layout.</p></div>
       </div>
-      <div class="workspace-note"><span>ⓘ</span><p>For direct MP4/WebM/OGG sources, each panel contains a real HTML video player using the same URL, mute and loop settings. Large player counts can overwhelm browser, network or device resources; autoplay may be blocked. YouTube/Facebook panels are simulations with one manual preview only.</p></div>
+      <div class="workspace-note"><span>ⓘ</span><p>For direct MP4/WebM/OGG sources, each panel contains a real HTML video player using the same URL, mute and loop settings. Large player counts can overwhelm browser, network or device resources; autoplay may be blocked. YouTube/Facebook panels show video thumbnails (where available) and metadata with one manual preview only.</p></div>
     </section>
 
     <section class="panel preview-panel">
       <div class="panel-heading"><div><span class="step">03</span><h3>Platform embed preview</h3></div><span class="overline">MANUAL PLAYBACK</span></div>
       <div id="previewEmpty" class="preview-empty">Platform preview appears here after generating panels. Start playback manually using the platform controls.</div>
       <div id="previewWrap" class="preview-wrap" hidden><iframe id="videoPreview" title="Single video embed preview" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
-      <p class="preview-caption">YouTube/Facebook are previewed in one manual player only. Real multi-screen playback is available for direct video files you are authorized to test. Some platform videos do not allow embedding.</p>
+      <p class="preview-caption">YouTube/Facebook panels show a thumbnail/identifier and one manual player only. Real synchronized multi-screen playback is available for direct video files you are authorized to test. Some platform videos do not allow embedding.</p>
     </section>
     <footer>WATCH VIEWER <span>•</span> UI load testing · Simulated panels · Manual single-player preview</footer>
   </main>
