@@ -10,6 +10,7 @@
   const panels = [];
   let currentSource = null;
   let activeVideos = [];
+  let syncingSeek = false;
 
   const youtubeHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be', 'youtube-nocookie.com']);
   const facebookHosts = new Set(['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.watch', 'www.fb.watch', 'web.facebook.com']);
@@ -80,6 +81,7 @@
     $('memoryMetric').textContent = memory === null ? 'N/A' : memory.toFixed(1) + ' MB';
     $('panelCount').textContent = panels.length + ' PANELS';
     $('clearPanels').disabled = panels.length === 0;
+    $('multiControls').hidden = !(currentSource && currentSource.platform === 'mp4' && activeVideos.length);
   }
 
   function makePanel(index) {
@@ -107,6 +109,12 @@
       video.playsInline = true;
       video.preload = 'metadata';
       video.addEventListener('playing', () => { status.textContent = 'PLAYING'; status.className = 'player-status playing'; });
+      video.addEventListener('seeked', () => {
+        if (syncingSeek || activeVideos.length < 2) return;
+        syncingSeek = true;
+        activeVideos.forEach(other => { if (other !== video && Number.isFinite(video.currentTime)) { try { other.currentTime = video.currentTime; } catch (_) {} } });
+        syncingSeek = false;
+      });
       video.addEventListener('waiting', () => { status.textContent = 'BUFFERING'; status.className = 'player-status'; });
       video.addEventListener('error', () => { status.textContent = 'LOAD ERROR'; status.className = 'player-status failed'; });
       visual.append(video);
@@ -116,13 +124,25 @@
         playAttempt.catch(() => { status.textContent = 'CLICK TO PLAY'; status.className = 'player-status'; });
       }
     } else {
+      if (currentSource.platform === 'youtube') {
+        const thumbnail = document.createElement('img');
+        thumbnail.className = 'sim-thumbnail';
+        thumbnail.alt = 'YouTube video thumbnail';
+        thumbnail.loading = 'lazy';
+        thumbnail.src = 'https://i.ytimg.com/vi/' + encodeURIComponent(currentSource.id) + '/hqdefault.jpg';
+        thumbnail.onerror = () => { thumbnail.hidden = true; };
+        visual.append(thumbnail);
+      }
+      const overlay = document.createElement('div');
+      overlay.className = 'sim-overlay';
       const play = document.createElement('span');
       play.className = 'sim-play';
       play.textContent = '▶';
       const label = document.createElement('span');
       label.className = 'sim-label';
-      label.textContent = currentSource.platform.toUpperCase() + ' · TEST PANEL';
-      visual.append(play, label);
+      label.textContent = currentSource.platform.toUpperCase() + (currentSource.id ? ' · ' + currentSource.id : ' · VIDEO PANEL');
+      overlay.append(play, label);
+      visual.append(overlay);
     }
 
     const details = document.createElement('div');
@@ -187,16 +207,34 @@
       setPreview(source);
       updateMetrics(elapsed);
       if (source.platform === 'mp4') {
-        showMessage(requested + ' real video players created using your supplied video file. Muted=' +
+        $('syncStatus').textContent = requested + ' authorized-file players loaded';
+        showMessage(requested + ' real video players created using your supplied video file. Use Play all / Pause all / Restart all to control them together. Muted='
           (muteInput.value === 'true') + ', loop=' + (loopInput.value === 'true') +
           '. Autoplay may be blocked by browser/device limits; use each player control if needed.');
       } else {
-        showMessage(requested + ' simulated panels generated. One manual ' + source.platform +
+        $('multiControls').hidden = true;
+        showMessage(requested + ' simulated panels generated with ' + (source.platform === 'youtube' ? 'YouTube thumbnails' : 'platform placeholders') + '. One manual ' + source.platform +
           ' preview is ready below. Multi-screen third-party playback is not enabled.');
       }
     } catch (error) {
       showMessage(error.message, true);
     }
+  });
+
+  $('playAll').addEventListener('click', async () => {
+    const results = await Promise.allSettled(activeVideos.map(video => video.play()));
+    const blocked = results.filter(result => result.status === 'rejected').length;
+    $('syncStatus').textContent = blocked ? blocked + ' player(s) blocked by browser/device policy' : 'Play command sent to all ' + activeVideos.length + ' players';
+  });
+  $('pauseAll').addEventListener('click', () => {
+    activeVideos.forEach(video => video.pause());
+    $('syncStatus').textContent = 'All players paused';
+  });
+  $('restartAll').addEventListener('click', async () => {
+    activeVideos.forEach(video => { try { video.currentTime = 0; } catch (_) {} });
+    const results = await Promise.allSettled(activeVideos.map(video => video.play()));
+    const blocked = results.filter(result => result.status === 'rejected').length;
+    $('syncStatus').textContent = blocked ? blocked + ' player(s) blocked by browser/device policy' : 'All players restarted together';
   });
 
   $('clearPanels').addEventListener('click', () => {
@@ -217,6 +255,7 @@
     loopInput.value = 'false';
     muteInput.value = 'true';
     $('videoPreview').src = 'about:blank';
+    $('multiControls').hidden = true;
     $('previewWrap').hidden = true;
     $('previewEmpty').hidden = false;
     $('previewEmpty').textContent = 'A single embed preview will appear here after you generate the test panels. Start playback manually using the platform\'s own controls.';
