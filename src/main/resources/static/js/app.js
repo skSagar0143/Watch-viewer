@@ -16,6 +16,7 @@
     let apiReady = false;
     let sessionDeadline = null;
     let countdownHandle = null;
+    let finalState = null;
     let hasLog = false;
 
     function addLog(text, isError = false) {
@@ -67,6 +68,7 @@
     }
 
     function finishTest(reason) {
+        finalState = reason;
         stopCountdown();
         if (player && typeof player.pauseVideo === 'function') player.pauseVideo();
         $('playState').textContent = reason;
@@ -140,11 +142,12 @@
                 onStateChange: (event) => {
                     const states = window.YT.PlayerState;
                     if (event.data === states.PLAYING) {
+                        finalState = null;
                         $('playState').textContent = 'Playing';
                         setCheck('playCheck', 'Passed');
                         if (sessionDeadline === null) startCountdown();
                     } else if (event.data === states.PAUSED) {
-                        $('playState').textContent = 'Paused';
+                        $('playState').textContent = finalState || 'Paused';
                     } else if (event.data === states.BUFFERING) {
                         $('playState').textContent = 'Buffering';
                     } else if (event.data === states.ENDED) {
@@ -219,6 +222,7 @@
     reloadButton.addEventListener('click', () => {
         if (!videoId) return;
         stopCountdown();
+        finalState = null;
         $('timeRemaining').textContent = '--:--';
         $('playState').textContent = 'Reloading player';
         startButton.disabled = true;
