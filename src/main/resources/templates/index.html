@@ -1,77 +1,55 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0b1020">
-    <title>Watch Viewer | YouTube Playback QA</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090d18">
+  <title>Watch Viewer — Video QA Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
-<div class="app-shell">
-    <aside class="sidebar">
-        <a class="brand" href="/"><span class="brand-mark">W</span><span>watch<span class="brand-light">viewer</span><small>PLAYBACK QA STUDIO</small></span></a>
-        <div class="side-label">WORKSPACE</div>
-        <a class="nav-item active" href="/"><span>▣</span> Playback lab</a>
-        <div class="side-note"><span class="live-dot"></span> LOCAL QA SESSION<p>Test one YouTube video in one user-controlled player.</p></div>
-        <div class="sidebar-bottom">WATCH VIEWER <span>v1.1.0</span></div>
-    </aside>
-    <main class="main-content">
-        <header class="topbar"><div><div class="eyebrow">VIDEO QUALITY TOOLKIT</div><h1>Playback lab</h1></div><div class="top-status"><span class="live-dot"></span> Ready for testing</div></header>
-        <section class="intro">
-            <div><div class="eyebrow accent">TEST. OBSERVE. IMPROVE.</div><h2>Test YouTube playback<br><span>in one controlled session.</span></h2><p>Load a YouTube video, choose a test duration, monitor player events, and manually reload when you need to repeat a troubleshooting step.</p></div>
-            <div class="intro-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="play-shape">▶</div><span class="art-dot dot-a"></span><span class="art-dot dot-b"></span></div>
-        </section>
-        <section class="config-card">
-            <div class="section-heading"><div><span class="step">01</span><h3>Configure test</h3></div><span class="muted">YOUTUBE SOURCE</span></div>
-            <label for="videoUrl">YouTube video URL</label>
-            <div class="url-row"><input id="videoUrl" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="url"><button id="loadButton" class="primary-button">Load video <span>↗</span></button></div>
-            <div class="hint-row"><span>ⓘ</span> Use a public video that allows embedding. Some videos restrict playback on external websites.</div>
-            <div class="config-options">
-                <div class="option"><label for="browserSelect">Browser compatibility profile</label><select id="browserSelect"><option value="current">Current browser</option><option value="chrome">Google Chrome</option><option value="edge">Microsoft Edge</option><option value="firefox">Mozilla Firefox</option><option value="safari">Apple Safari</option></select><small id="browserNote">The player runs in the browser currently hosting this app.</small></div>
-                <div class="option"><label for="durationSelect">Test duration</label><select id="durationSelect"><option value="1">1 minute</option><option value="5" selected>5 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select><small>The test pauses the player when this time expires.</small></div>
-            </div>
-            <div id="validationMessage" class="validation-message" role="status" aria-live="polite"></div>
-        </section>
-        <section class="config-card tab-qa-card">
-            <div class="section-heading"><div><span class="step">02</span><h3>Multi-tab compatibility check</h3></div><span class="muted">MANUAL QA ONLY</span></div>
-            <p class="tab-qa-copy">Open a small set of separate copies of this QA page to compare browser behavior. Each tab loads the video paused; you must start playback manually in each tab.</p>
-            <div class="tab-launch-row">
-                <div class="option"><label for="tabCount">Number of test tabs</label><select id="tabCount"><option value="1">1 tab</option><option value="2" selected>2 tabs</option><option value="3">3 tabs</option><option value="5">5 tabs (maximum)</option></select></div>
-                <div class="tab-actions"><button id="openTabsButton" class="primary-button" disabled>Open test tabs</button><button id="closeTabsButton" class="secondary-button" disabled>Close opened tabs</button></div>
-            </div>
-            <small id="tabStatus" class="tab-status" role="status" aria-live="polite">Load a YouTube URL first. Your browser may ask you to allow pop-ups.</small>
-        </section>
-        <section class="player-card">
-            <div class="section-heading"><div><span class="step">03</span><h3>YouTube player</h3></div><span id="playerBadge" class="status-pill">NO VIDEO LOADED</span></div>
-            <div class="video-stage" id="videoStage">
-                <div class="empty-state" id="emptyState"><div class="empty-icon">▶</div><h4>Your YouTube preview will appear here</h4><p>Paste a video link above and select Load video.</p></div>
-                <div id="youtubePlayer" class="youtube-player" hidden></div>
-            </div>
-            <div class="session-controls">
-                <button id="startButton" class="primary-button" disabled>Start timed test</button>
-                <button id="reloadButton" class="secondary-button" disabled>↻ Reload player</button>
-                <button id="stopButton" class="secondary-button" disabled>Stop test</button>
-                <div class="countdown"><span>TIME REMAINING</span><strong id="timeRemaining">--:--</strong></div>
-            </div>
-            <div class="metrics">
-                <div><span>PLAYBACK STATE</span><strong id="playState">Idle</strong></div>
-                <div><span>VIDEO TIME</span><strong id="currentTime">00:00</strong></div>
-                <div><span>VIDEO LENGTH</span><strong id="duration">--:--</strong></div>
-                <div><span>TEST DURATION</span><strong id="testDuration">5 min</strong></div>
-            </div>
-        </section>
-        <section class="bottom-grid">
-            <div class="info-card"><div class="section-heading"><div><span class="step">04</span><h3>Test checklist</h3></div></div>
-                <div class="check-row"><span class="check-icon">✓</span><div><strong>YouTube URL</strong><small>Supported URL format</small></div><span id="urlCheck" class="check-status">Pending</span></div>
-                <div class="check-row"><span class="check-icon">◷</span><div><strong>Player ready</strong><small>YouTube player API initialized</small></div><span id="metadataCheck" class="check-status">Pending</span></div>
-                <div class="check-row"><span class="check-icon">◷</span><div><strong>Playback test</strong><small>Player starts successfully</small></div><span id="playCheck" class="check-status">Pending</span></div>
-            </div>
-            <div class="info-card event-card"><div class="section-heading"><div><span class="step">05</span><h3>Event log</h3></div><button id="clearLog" class="text-button">Clear</button></div><div id="eventLog" class="event-log"><div class="log-empty">No events yet. Load a video to begin.</div></div></div>
-        </section>
-        <footer>WATCH VIEWER <span>•</span> Manual multi-tab compatibility QA only. No autoplay, looping, auto-refresh, or view-generation automation.</footer>
-    </main>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="/"><span class="brand-icon">W</span><span>watch<span class="brand-muted">viewer</span><small>VIDEO QA STUDIO</small></span></a>
+    <div class="nav-label">WORKSPACE</div>
+    <div class="nav-link active"><span>▦</span> Player workspace</div>
+    <div class="sidebar-info"><span class="status-dot"></span> LOCAL TEST SESSION<p>Compare supported embedded players in one dashboard.</p></div>
+    <div class="sidebar-foot">WATCH VIEWER <span>v2.0</span></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar"><div><div class="eyebrow">VIDEO QUALITY TOOLKIT</div><h1>Player workspace</h1></div><div class="ready"><span class="status-dot"></span> Ready</div></header>
+    <section class="hero">
+      <div><div class="eyebrow cyan">TEST · OBSERVE · TROUBLESHOOT</div><h2>Your videos.<br><span>One testing workspace.</span></h2><p>Add YouTube or Facebook video links and inspect their embedded playback side by side. Playback is always controlled manually.</p></div>
+      <div class="hero-art" aria-hidden="true"><div class="hero-ring ring-a"></div><div class="hero-ring ring-b"></div><div class="hero-play">▶</div><i></i></div>
+    </section>
+
+    <section class="panel setup">
+      <div class="panel-heading"><div><span class="step">01</span><h3>Add a video source</h3></div><span class="overline">SUPPORTED EMBEDS</span></div>
+      <div class="form-grid">
+        <div><label for="platform">Video platform</label><select id="platform"><option value="youtube">YouTube</option><option value="facebook">Facebook</option></select></div>
+        <div class="url-field"><label for="videoUrl">Video URL</label><input id="videoUrl" type="url" placeholder="Paste a YouTube or Facebook video link" autocomplete="url"></div>
+      </div>
+      <div class="actions"><button id="addVideo" class="btn primary">Add to workspace <span>＋</span></button><span class="helper">Only public videos that permit embedding can load.</span></div>
+      <div id="message" class="message" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel workspace-panel">
+      <div class="workspace-head">
+        <div class="panel-heading"><div><span class="step">02</span><h3>Player grid</h3></div><span id="playerCount" class="count">0 / 4 PLAYERS</span></div>
+        <div class="grid-tools"><label for="gridSize">Grid layout</label><select id="gridSize"><option value="1">1 player</option><option value="2" selected>2 players</option><option value="3">3 players</option><option value="4">4 players (maximum)</option></select><button id="clearAll" class="btn subtle" disabled>Clear workspace</button></div>
+      </div>
+      <div id="playerGrid" class="player-grid empty-grid">
+        <div class="empty-workspace"><div class="empty-symbol">▣</div><h4>Your player workspace is empty</h4><p>Add a YouTube or Facebook URL above to create your first preview.</p></div>
+      </div>
+      <p class="workspace-note"><span>ⓘ</span> Grid size controls the maximum number of distinct video sources shown. It does not duplicate or automatically play videos. Start each player manually using its native controls.</p>
+    </section>
+    <footer>WATCH VIEWER <span>•</span> Embedded playback QA · Manual playback only · No view-generation automation</footer>
+  </main>
 </div>
-<script th:src="@{/js/app.js}"></script>
+<script src="/js/app.js"></script>
 </body>
 </html>
