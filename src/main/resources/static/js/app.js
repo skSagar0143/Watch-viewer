@@ -9,6 +9,7 @@
   const message = $('message');
   const panels = [];
   let currentSource = null;
+  let activeVideos = [];
 
   const youtubeHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be', 'youtube-nocookie.com']);
   const facebookHosts = new Set(['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.watch', 'www.fb.watch', 'web.facebook.com']);
@@ -37,7 +38,12 @@
       }
       return { platform: 'facebook', url: url.href };
     }
-    throw new Error('Choose YouTube or Facebook.');
+    if (selected === 'mp4') {
+      const ext = url.pathname.toLowerCase().match(/\.(mp4|webm|ogg)$/);
+      if (!ext) throw new Error('For multi-screen playback, use a direct .mp4, .webm, or .ogg video-file URL that you own or are authorized to test.');
+      return { platform: 'mp4', url: url.href, format: ext[1] };
+    }
+    throw new Error('Choose YouTube, Facebook, or an authorized video file.');
   }
 
   function embedUrl(source) {
@@ -54,10 +60,21 @@
     message.className = 'message visible' + (error ? ' error' : ' success');
   }
 
+  function stopPlayers() {
+    activeVideos.forEach(video => {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    });
+    activeVideos = [];
+  }
+
   function updateMetrics(elapsed = null) {
     $('requestedMetric').textContent = currentSource ? countInput.value : '—';
     $('generatedMetric').textContent = panels.length ? panels.length : '—';
-    $('generatedDetail').textContent = panels.length ? 'Simulated panels created' : 'Waiting for test';
+    $('generatedDetail').textContent = panels.length
+      ? (currentSource && currentSource.platform === 'mp4' ? 'Real video players created' : 'Simulated panels created')
+      : 'Waiting for test';
     $('timeMetric').textContent = elapsed === null ? '—' : elapsed.toFixed(1) + ' ms';
     const memory = performance && performance.memory ? performance.memory.usedJSHeapSize / (1024 * 1024) : null;
     $('memoryMetric').textContent = memory === null ? 'N/A' : memory.toFixed(1) + ' MB';
@@ -73,19 +90,40 @@
     const number = document.createElement('strong');
     number.textContent = 'SCREEN ' + String(index + 1).padStart(3, '0');
     const status = document.createElement('span');
-    status.className = 'sim-status';
-    status.textContent = 'SIMULATED';
+    status.className = currentSource.platform === 'mp4' ? 'player-status' : 'sim-status';
+    status.textContent = currentSource.platform === 'mp4' ? 'LOADING' : 'SIMULATED';
     top.append(number, status);
 
     const visual = document.createElement('div');
-    visual.className = 'sim-visual';
-    const play = document.createElement('span');
-    play.className = 'sim-play';
-    play.textContent = '▶';
-    const label = document.createElement('span');
-    label.className = 'sim-label';
-    label.textContent = currentSource.platform.toUpperCase() + ' · TEST PANEL';
-    visual.append(play, label);
+    visual.className = currentSource.platform === 'mp4' ? 'real-video-visual' : 'sim-visual';
+    if (currentSource.platform === 'mp4') {
+      const video = document.createElement('video');
+      video.src = currentSource.url;
+      video.controls = true;
+      video.autoplay = true;
+      video.muted = muteInput.value === 'true';
+      video.defaultMuted = video.muted;
+      video.loop = loopInput.value === 'true';
+      video.playsInline = true;
+      video.preload = 'metadata';
+      video.addEventListener('playing', () => { status.textContent = 'PLAYING'; status.className = 'player-status playing'; });
+      video.addEventListener('waiting', () => { status.textContent = 'BUFFERING'; status.className = 'player-status'; });
+      video.addEventListener('error', () => { status.textContent = 'LOAD ERROR'; status.className = 'player-status failed'; });
+      visual.append(video);
+      activeVideos.push(video);
+      const playAttempt = video.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(() => { status.textContent = 'CLICK TO PLAY'; status.className = 'player-status'; });
+      }
+    } else {
+      const play = document.createElement('span');
+      play.className = 'sim-play';
+      play.textContent = '▶';
+      const label = document.createElement('span');
+      label.className = 'sim-label';
+      label.textContent = currentSource.platform.toUpperCase() + ' · TEST PANEL';
+      visual.append(play, label);
+    }
 
     const details = document.createElement('div');
     details.className = 'test-card-details';
@@ -111,7 +149,7 @@
       const title = document.createElement('h4');
       title.textContent = 'No test panels generated';
       const copy = document.createElement('p');
-      copy.textContent = 'Configure a video and press Load and Play to create the selected number of simulated panels.';
+      copy.textContent = 'Choose an authorized video file for real multi-screen playback, or a platform link for a simulated layout.';
       empty.append(icon, title, copy);
       grid.append(empty);
       return;
@@ -122,6 +160,13 @@
   }
 
   function setPreview(source) {
+    if (source.platform === 'mp4') {
+      $('previewWrap').hidden = true;
+      $('previewEmpty').hidden = false;
+      $('previewEmpty').textContent = 'Real video playback is running in the generated panels above. Each panel uses the same authorized video file URL.';
+      $('videoPreview').src = 'about:blank';
+      return;
+    }
     $('previewEmpty').hidden = true;
     $('previewWrap').hidden = false;
     $('videoPreview').src = embedUrl(source);
@@ -132,29 +177,39 @@
       const source = parseVideo(urlInput.value, platform.value);
       const requested = Number(countInput.value);
       if (![1, 10, 50, 100, 200].includes(requested)) throw new Error('Choose a supported panel count.');
+      stopPlayers();
       currentSource = source;
       panels.length = 0;
       const start = performance.now();
       for (let i = 0; i < requested; i++) panels.push(i);
-      const elapsed = performance.now() - start;
       renderPanels();
+      const elapsed = performance.now() - start;
       setPreview(source);
       updateMetrics(elapsed);
-      showMessage(requested + ' simulated panels generated. One manual ' + source.platform + ' embed preview is ready below. Playback is not started automatically.');
+      if (source.platform === 'mp4') {
+        showMessage(requested + ' real video players created using your supplied video file. Muted=' +
+          (muteInput.value === 'true') + ', loop=' + (loopInput.value === 'true') +
+          '. Autoplay may be blocked by browser/device limits; use each player control if needed.');
+      } else {
+        showMessage(requested + ' simulated panels generated. One manual ' + source.platform +
+          ' preview is ready below. Multi-screen third-party playback is not enabled.');
+      }
     } catch (error) {
       showMessage(error.message, true);
     }
   });
 
   $('clearPanels').addEventListener('click', () => {
+    stopPlayers();
     panels.length = 0;
     currentSource = null;
     renderPanels();
     updateMetrics();
-    showMessage('Test panels cleared.');
+    showMessage('Test panels cleared and video players stopped.');
   });
 
   $('reset').addEventListener('click', () => {
+    stopPlayers();
     panels.length = 0;
     currentSource = null;
     urlInput.value = '';
@@ -164,6 +219,7 @@
     $('videoPreview').src = 'about:blank';
     $('previewWrap').hidden = true;
     $('previewEmpty').hidden = false;
+    $('previewEmpty').textContent = 'A single embed preview will appear here after you generate the test panels. Start playback manually using the platform\'s own controls.';
     renderPanels();
     updateMetrics();
     showMessage('Test configuration reset.');
