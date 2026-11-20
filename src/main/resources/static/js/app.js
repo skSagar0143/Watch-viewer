@@ -18,6 +18,9 @@
     let countdownHandle = null;
     let finalState = null;
     let hasLog = false;
+    const openedTabs = [];
+    const openTabsButton = $('openTabsButton');
+    const closeTabsButton = $('closeTabsButton');
 
     function addLog(text, isError = false) {
         if (!hasLog) { log.innerHTML = ''; hasLog = true; }
@@ -187,6 +190,7 @@
             stopCountdown();
             videoId = parsedId;
             setCheck('urlCheck', 'Passed');
+            openTabsButton.disabled = false;
             setCheck('metadataCheck', 'Pending');
             setCheck('playCheck', 'Pending');
             $('playerBadge').textContent = 'LOADING PLAYER';
@@ -258,12 +262,51 @@
         }
     }, 1000);
 
+    openTabsButton.addEventListener('click', () => {
+        if (!videoId) return;
+        const count = Math.min(5, Math.max(1, Number($('tabCount').value) || 1));
+        const target = new URL(window.location.href);
+        target.search = '';
+        target.hash = '';
+        target.searchParams.set('video', videoId);
+        target.searchParams.set('qaTab', '1');
+        let opened = 0;
+        for (let i = 0; i < count; i++) {
+            const tab = window.open(target.toString(), '_blank');
+            if (tab) { openedTabs.push(tab); opened++; }
+        }
+        closeTabsButton.disabled = openedTabs.length === 0;
+        $('tabStatus').textContent = opened + ' of ' + count + ' test tab(s) opened. If fewer opened, allow pop-ups for this site and try again.';
+        addLog('Opened ' + opened + ' separate QA tab(s). Players load paused; playback is manual in each tab.');
+    });
+
+    closeTabsButton.addEventListener('click', () => {
+        let closed = 0;
+        while (openedTabs.length) {
+            const tab = openedTabs.pop();
+            try { if (tab && !tab.closed) { tab.close(); closed++; } } catch (_) { /* A tab may no longer be script-accessible. */ }
+        }
+        closeTabsButton.disabled = true;
+        $('tabStatus').textContent = closed + ' opened test tab(s) closed. Tabs closed manually by the user may already be gone.';
+        addLog('Closed ' + closed + ' test tab(s) opened by this page.');
+    });
+
     $('clearLog').addEventListener('click', () => {
         log.innerHTML = '<div class="log-empty">No events yet. Load a video to begin.</div>';
         hasLog = false;
     });
 
     $('testDuration').textContent = durationSelect.value + ' min';
+
+    const query = new URLSearchParams(window.location.search);
+    const requestedVideo = query.get('video');
+    if (requestedVideo && /^[A-Za-z0-9_-]{11}$/.test(requestedVideo)) {
+        urlInput.value = 'https://www.youtube.com/watch?v=' + requestedVideo;
+        $('tabStatus').textContent = query.get('qaTab') === '1'
+            ? 'Compatibility test tab. The player will load paused; press Start timed test to play manually.'
+            : 'Video URL restored from the tab launcher.';
+        loadButton.click();
+    }
 
     // Load the official YouTube IFrame Player API once and resolve the pending initializer.
     ensureYouTubeApi().catch(error => addLog(error.message, true));
