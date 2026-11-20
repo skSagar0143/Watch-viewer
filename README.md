@@ -1,22 +1,22 @@
-# Watch Viewer 3.0 — Video Load Lab
+# Watch Viewer 3.1 — Video Load Lab
 
-Watch Viewer is a Java 21 / Spring Boot dashboard for testing how a browser handles a large grid of lightweight video-panel UI components.
+Watch Viewer is a Java 21 / Spring Boot dashboard for UI load testing and controlled multi-player playback tests using video files the operator owns or is authorized to test.
 
 ## Features
-- Paste a YouTube or Facebook video URL and select the matching platform.
-- Select 1, 10, 50, 100, or 200 simulated screen panels.
-- Configure Loop true/false and Mute true/false as test settings displayed on every simulated panel.
-- Generate the complete panel grid with one **Load and generate panels** action.
+- Paste a YouTube or Facebook video URL for a simulated panel grid and one manual platform embed preview.
+- Paste a direct authorized .mp4, .webm, or .ogg video-file URL to create real HTML video players in every selected panel.
+- Select 1, 10, 50, 100, or 200 screens.
+- Apply muted/unmuted and loop on/off settings to each real video-file player.
+- See per-player loading, playing, buffering, and error states.
+- Change panel density, clear generated panels, or reset the configuration.
 - Measure panel-generation time and display JavaScript heap usage where the browser exposes it.
-- Change panel density, clear the generated panels, or reset the configuration.
-- Load one optional real YouTube/Facebook embed preview for manual compatibility testing.
 
-## Important distinction: simulated panels vs real video streams
-The 1–200 grid is a UI/load simulation. It creates lightweight HTML panels that represent player slots; it does **not** create 100–200 real third-party video streams. The loop and mute choices are shown as test configuration on those simulated slots and are not applied as automated playback commands to a fleet of embeds.
+## Important platform distinction
+YouTube and Facebook links are not duplicated into fleets of automated players. They are shown as one manual embed preview alongside simulated layout panels. This avoids automated third-party playback intended to manufacture views or watch time.
 
-The single embed preview is loaded separately and must be started manually with the platform's native controls. It is configured not to autoplay. YouTube's embed preview requests muted playback by default; Facebook controls its own player behaviour. Platform restrictions, privacy settings, region rules, browser policies, and embed permissions can prevent a video from loading.
+For real multi-screen playback, use a direct video-file URL ending in .mp4, .webm, or .ogg that you own or have permission to test. The browser loads the same URL into each selected HTML video element and applies the selected mute and loop settings. Autoplay may be blocked by browser policy, and large counts (especially 100–200) can exhaust CPU, memory, decoder, network, or server resources. Start with a small count and increase gradually. If autoplay is blocked, use the player controls.
 
-This tool does not automate mass playback, looping, refreshes, or view/watch-time generation.
+A URL must be directly accessible by the browser and the host must permit media access where applicable. A normal YouTube/Facebook watch page URL is not a direct video-file URL.
 
 ## Technology
 - Java 21
@@ -29,7 +29,7 @@ This tool does not automate mass playback, looping, refreshes, or view/watch-tim
 ## Requirements
 - JDK 21+
 - Maven 3.9+
-- Internet connection for the optional platform embed preview
+- Internet connection for optional platform embed previews or remote video files
 
 ## Run locally
 ~~~bash
@@ -62,5 +62,4 @@ src/
   test/
     java/com/watchviewer/controller/PageControllerTest.java
 .github/workflows/maven.yml
-pom.xml
 ~~~
