@@ -1,9 +1,6 @@
-target/
-.classpath
-.project
-.settings/
-.idea/
-*.iml
-.vscode/
+node_modules/
+dist/
+.vite/
+.env
+.env.*
 .DS_Store
-*.log
