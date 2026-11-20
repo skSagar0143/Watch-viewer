@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1020">
+    <title>Watch Viewer | Playback QA</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <a class="brand" href="/">
+            <span class="brand-mark">W</span>
+            <span>watch<span class="brand-light">viewer</span><small>PLAYBACK QA STUDIO</small></span>
+        </a>
+        <div class="side-label">WORKSPACE</div>
+        <a class="nav-item active" href="/"><span>▣</span> Playback lab</a>
+        <div class="side-note">
+            <span class="live-dot"></span>
+            LOCAL QA SESSION
+            <p>Test one video stream in your current browser.</p>
+        </div>
+        <div class="sidebar-bottom">WATCH VIEWER <span>v1.0.0</span></div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div><div class="eyebrow">VIDEO QUALITY TOOLKIT</div><h1>Playback lab</h1></div>
+            <div class="top-status"><span class="live-dot"></span> Ready for testing</div>
+        </header>
+
+        <section class="intro">
+            <div>
+                <div class="eyebrow accent">TEST. OBSERVE. IMPROVE.</div>
+                <h2>Make every playback<br><span>count for quality.</span></h2>
+                <p>Check media loading, playback controls, looping behavior and browser compatibility from one simple workspace.</p>
+            </div>
+            <div class="intro-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="play-shape">▶</div><span class="art-dot dot-a"></span><span class="art-dot dot-b"></span></div>
+        </section>
+
+        <section class="config-card">
+            <div class="section-heading"><div><span class="step">01</span><h3>Configure test</h3></div><span class="muted">VIDEO SOURCE</span></div>
+            <label for="videoUrl">Video file URL</label>
+            <div class="url-row">
+                <input id="videoUrl" type="url" placeholder="https://example.com/sample-video.mp4" autocomplete="url">
+                <button id="loadButton" class="primary-button">Load &amp; play <span>↗</span></button>
+            </div>
+            <div class="hint-row"><span>ⓘ</span> Direct MP4, WebM and Ogg files work best. YouTube watch-page URLs are not direct video files.</div>
+            <div class="config-options">
+                <div class="option">
+                    <label for="browserSelect">Target browser profile</label>
+                    <select id="browserSelect">
+                        <option value="current">Current browser</option>
+                        <option value="chrome">Google Chrome</option>
+                        <option value="edge">Microsoft Edge</option>
+                        <option value="firefox">Mozilla Firefox</option>
+                        <option value="safari">Apple Safari</option>
+                    </select>
+                    <small id="browserNote">Playback runs in the browser currently hosting this app.</small>
+                </div>
+                <div class="option loop-option">
+                    <label>Loop playback test</label>
+                    <label class="switch-line"><input id="loopToggle" type="checkbox"><span class="switch"></span><span>Repeat this video when it ends</span></label>
+                    <small>Useful for checking end-of-file and restart behavior.</small>
+                </div>
+            </div>
+            <div id="validationMessage" class="validation-message" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="player-card">
+            <div class="section-heading"><div><span class="step">02</span><h3>Playback monitor</h3></div><span id="playerBadge" class="status-pill">NO MEDIA LOADED</span></div>
+            <div class="video-stage" id="videoStage">
+                <div class="empty-state" id="emptyState"><div class="empty-icon">▶</div><h4>Your video preview will appear here</h4><p>Enter a direct video file URL above, then select Load &amp; play.</p></div>
+                <video id="videoPlayer" controls playsinline preload="metadata" hidden></video>
+            </div>
+            <div class="metrics">
+                <div><span>PLAYBACK STATE</span><strong id="playState">Idle</strong></div>
+                <div><span>CURRENT TIME</span><strong id="currentTime">00:00</strong></div>
+                <div><span>DURATION</span><strong id="duration">--:--</strong></div>
+                <div><span>LOOP MODE</span><strong id="loopState">Off</strong></div>
+            </div>
+        </section>
+
+        <section class="bottom-grid">
+            <div class="info-card">
+                <div class="section-heading"><div><span class="step">03</span><h3>Test checklist</h3></div></div>
+                <div class="check-row"><span class="check-icon">✓</span><div><strong>URL validation</strong><small>HTTP/HTTPS address format</small></div><span id="urlCheck" class="check-status">Pending</span></div>
+                <div class="check-row"><span class="check-icon">◷</span><div><strong>Media metadata</strong><small>Browser can read media information</small></div><span id="metadataCheck" class="check-status">Pending</span></div>
+                <div class="check-row"><span class="check-icon">◷</span><div><strong>Playback test</strong><small>Video starts and advances</small></div><span id="playCheck" class="check-status">Pending</span></div>
+            </div>
+            <div class="info-card event-card">
+                <div class="section-heading"><div><span class="step">04</span><h3>Event log</h3></div><button id="clearLog" class="text-button">Clear</button></div>
+                <div id="eventLog" class="event-log"><div class="log-empty">No events yet. Load a video to begin.</div></div>
+            </div>
+        </section>
+        <footer>WATCH VIEWER <span>•</span> A single-session playback QA utility. No view or engagement automation.</footer>
+    </main>
+</div>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>
