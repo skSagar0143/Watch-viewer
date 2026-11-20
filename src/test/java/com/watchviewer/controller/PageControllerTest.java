@@ -21,7 +21,7 @@ class PageControllerTest {
     void dashboardLoadsSuccessfully() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Player workspace")))
+                .andExpect(content().string(containsString("Generated test panels")))
                 .andExpect(content().string(containsString("YouTube")))
                 .andExpect(content().string(containsString("Facebook")));
     }
