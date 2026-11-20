@@ -33,8 +33,17 @@
             </div>
             <div id="validationMessage" class="validation-message" role="status" aria-live="polite"></div>
         </section>
+        <section class="config-card tab-qa-card">
+            <div class="section-heading"><div><span class="step">02</span><h3>Multi-tab compatibility check</h3></div><span class="muted">MANUAL QA ONLY</span></div>
+            <p class="tab-qa-copy">Open a small set of separate copies of this QA page to compare browser behavior. Each tab loads the video paused; you must start playback manually in each tab.</p>
+            <div class="tab-launch-row">
+                <div class="option"><label for="tabCount">Number of test tabs</label><select id="tabCount"><option value="1">1 tab</option><option value="2" selected>2 tabs</option><option value="3">3 tabs</option><option value="5">5 tabs (maximum)</option></select></div>
+                <div class="tab-actions"><button id="openTabsButton" class="primary-button" disabled>Open test tabs</button><button id="closeTabsButton" class="secondary-button" disabled>Close opened tabs</button></div>
+            </div>
+            <small id="tabStatus" class="tab-status" role="status" aria-live="polite">Load a YouTube URL first. Your browser may ask you to allow pop-ups.</small>
+        </section>
         <section class="player-card">
-            <div class="section-heading"><div><span class="step">02</span><h3>YouTube player</h3></div><span id="playerBadge" class="status-pill">NO VIDEO LOADED</span></div>
+            <div class="section-heading"><div><span class="step">03</span><h3>YouTube player</h3></div><span id="playerBadge" class="status-pill">NO VIDEO LOADED</span></div>
             <div class="video-stage" id="videoStage">
                 <div class="empty-state" id="emptyState"><div class="empty-icon">▶</div><h4>Your YouTube preview will appear here</h4><p>Paste a video link above and select Load video.</p></div>
                 <div id="youtubePlayer" class="youtube-player" hidden></div>
@@ -53,14 +62,14 @@
             </div>
         </section>
         <section class="bottom-grid">
-            <div class="info-card"><div class="section-heading"><div><span class="step">03</span><h3>Test checklist</h3></div></div>
+            <div class="info-card"><div class="section-heading"><div><span class="step">04</span><h3>Test checklist</h3></div></div>
                 <div class="check-row"><span class="check-icon">✓</span><div><strong>YouTube URL</strong><small>Supported URL format</small></div><span id="urlCheck" class="check-status">Pending</span></div>
                 <div class="check-row"><span class="check-icon">◷</span><div><strong>Player ready</strong><small>YouTube player API initialized</small></div><span id="metadataCheck" class="check-status">Pending</span></div>
                 <div class="check-row"><span class="check-icon">◷</span><div><strong>Playback test</strong><small>Player starts successfully</small></div><span id="playCheck" class="check-status">Pending</span></div>
             </div>
-            <div class="info-card event-card"><div class="section-heading"><div><span class="step">04</span><h3>Event log</h3></div><button id="clearLog" class="text-button">Clear</button></div><div id="eventLog" class="event-log"><div class="log-empty">No events yet. Load a video to begin.</div></div></div>
+            <div class="info-card event-card"><div class="section-heading"><div><span class="step">05</span><h3>Event log</h3></div><button id="clearLog" class="text-button">Clear</button></div><div id="eventLog" class="event-log"><div class="log-empty">No events yet. Load a video to begin.</div></div></div>
         </section>
-        <footer>WATCH VIEWER <span>•</span> Single-player QA tool. No multi-tab, looping, auto-refresh, or view-generation automation.</footer>
+        <footer>WATCH VIEWER <span>•</span> Manual multi-tab compatibility QA only. No autoplay, looping, auto-refresh, or view-generation automation.</footer>
     </main>
 </div>
 <script th:src="@{/js/app.js}"></script>
