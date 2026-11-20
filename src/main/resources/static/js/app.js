@@ -1,24 +1,25 @@
 (() => {
-  const $ = (id) => document.getElementById(id);
+  const $ = id => document.getElementById(id);
   const platform = $('platform');
   const urlInput = $('videoUrl');
-  const addButton = $('addVideo');
+  const countInput = $('screenCount');
+  const loopInput = $('loopMode');
+  const muteInput = $('muteMode');
   const grid = $('playerGrid');
-  const gridSize = $('gridSize');
   const message = $('message');
-  const sources = [];
-  let nextId = 1;
+  const panels = [];
+  let currentSource = null;
 
   const youtubeHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be', 'youtube-nocookie.com']);
   const facebookHosts = new Set(['facebook.com', 'www.facebook.com', 'm.facebook.com', 'fb.watch', 'www.fb.watch', 'web.facebook.com']);
 
-  function parseSource(raw, selectedPlatform) {
+  function parseVideo(raw, selected) {
     let url;
-    try { url = new URL(raw.trim()); } catch (_) { throw new Error('Please enter a valid video URL.'); }
-    if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Only HTTP and HTTPS video links are supported.');
+    try { url = new URL(raw.trim()); } catch (_) { throw new Error('Enter a valid video URL first.'); }
+    if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Only HTTP and HTTPS links are supported.');
     const host = url.hostname.toLowerCase();
-    if (selectedPlatform === 'youtube') {
-      if (!youtubeHosts.has(host)) throw new Error('This does not look like a supported YouTube URL. Select YouTube or paste a YouTube link.');
+    if (selected === 'youtube') {
+      if (!youtubeHosts.has(host)) throw new Error('The URL does not match YouTube. Select the correct platform.');
       let id = '';
       if (host.includes('youtu.be')) id = url.pathname.split('/').filter(Boolean)[0] || '';
       else if (url.pathname === '/watch') id = url.searchParams.get('v') || '';
@@ -26,148 +27,153 @@
         const parts = url.pathname.split('/').filter(Boolean);
         if (['shorts', 'embed', 'live'].includes(parts[0])) id = parts[1] || '';
       }
-      if (!/^[A-Za-z0-9_-]{11}$/.test(id)) throw new Error('Could not find a valid YouTube video ID in that link.');
-      return { platform: 'youtube', id, url: 'https://www.youtube.com/watch?v=' + id, title: 'YouTube video' };
+      if (!/^[A-Za-z0-9_-]{11}$/.test(id)) throw new Error('Could not extract a valid YouTube video ID.');
+      return { platform: 'youtube', id, url: 'https://www.youtube.com/watch?v=' + id };
     }
-    if (selectedPlatform === 'facebook') {
-      if (!facebookHosts.has(host)) throw new Error('This does not look like a supported Facebook URL. Select Facebook or paste a Facebook link.');
+    if (selected === 'facebook') {
+      if (!facebookHosts.has(host)) throw new Error('The URL does not match Facebook. Select the correct platform.');
       if (!/\/(videos|watch|reel|reels|share\/v|share\/r)/i.test(url.pathname) && !host.includes('fb.watch')) {
-        throw new Error('Paste a Facebook video, Watch, Reel, or fb.watch link.');
+        throw new Error('Use a Facebook video, Watch, Reel, or fb.watch URL.');
       }
-      return { platform: 'facebook', id: url.href, url: url.href, title: 'Facebook video' };
+      return { platform: 'facebook', url: url.href };
     }
-    throw new Error('Choose a supported platform.');
-  }
-
-  function showMessage(text, isError = false) {
-    message.textContent = text;
-    message.className = 'message visible' + (isError ? ' error' : ' success');
+    throw new Error('Choose YouTube or Facebook.');
   }
 
   function embedUrl(source) {
     if (source.platform === 'youtube') {
       return 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(source.id) +
-        '?controls=1&autoplay=0&mute=0&playsinline=1&rel=0&enablejsapi=0';
+        '?controls=1&autoplay=0&mute=1&playsinline=1&rel=0';
     }
     return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(source.url) +
       '&show_text=false&autoplay=false&width=640';
   }
 
-  function render() {
-    const max = Number(gridSize.value);
-    $('playerCount').textContent = sources.length + ' / ' + max + ' PLAYERS';
-    $('clearAll').disabled = sources.length === 0;
-    addButton.disabled = sources.length >= max;
-    grid.classList.toggle('empty-grid', sources.length === 0);
-    grid.style.setProperty('--columns', String(Math.min(max, 2)));
-    if (!sources.length) {
-      grid.innerHTML = '<div class="empty-workspace"><div class="empty-symbol">▣</div><h4>Your player workspace is empty</h4><p>Add a YouTube or Facebook URL above to create your first preview.</p></div>';
-      return;
-    }
-    grid.innerHTML = '';
-    sources.forEach((source, index) => {
-      const card = document.createElement('article');
-      card.className = 'player-card';
-      card.dataset.id = String(source.localId);
-
-      const header = document.createElement('div');
-      header.className = 'player-card-head';
-      const identity = document.createElement('div');
-      identity.className = 'player-identity';
-      const platformTag = document.createElement('span');
-      platformTag.className = 'platform-tag ' + source.platform;
-      platformTag.textContent = source.platform === 'youtube' ? 'YT' : 'f';
-      const titleWrap = document.createElement('div');
-      const title = document.createElement('strong');
-      title.textContent = source.title + ' ' + (index + 1);
-      const subtitle = document.createElement('small');
-      subtitle.textContent = source.platform === 'youtube' ? 'YouTube embed' : 'Facebook embed';
-      titleWrap.append(title, subtitle);
-      identity.append(platformTag, titleWrap);
-      const remove = document.createElement('button');
-      remove.className = 'icon-button';
-      remove.type = 'button';
-      remove.title = 'Remove player';
-      remove.setAttribute('aria-label', 'Remove player');
-      remove.textContent = '×';
-      remove.addEventListener('click', () => {
-        const at = sources.findIndex(item => item.localId === source.localId);
-        if (at >= 0) sources.splice(at, 1);
-        render();
-      });
-      header.append(identity, remove);
-
-      const frameWrap = document.createElement('div');
-      frameWrap.className = 'frame-wrap';
-      const loading = document.createElement('div');
-      loading.className = 'frame-loading';
-      loading.textContent = 'Loading embed…';
-      const frame = document.createElement('iframe');
-      frame.title = source.platform === 'youtube' ? 'YouTube video player' : 'Facebook video player';
-      frame.src = embedUrl(source);
-      frame.loading = 'lazy';
-      frame.allow = 'accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-      frame.allowFullscreen = true;
-      frame.referrerPolicy = 'strict-origin-when-cross-origin';
-      frame.addEventListener('load', () => loading.remove(), { once: true });
-      frameWrap.append(loading, frame);
-
-      const footer = document.createElement('div');
-      footer.className = 'player-card-foot';
-      const state = document.createElement('span');
-      state.innerHTML = '<i class="status-dot"></i> Embed loaded by browser';
-      const open = document.createElement('a');
-      open.href = source.url;
-      open.target = '_blank';
-      open.rel = 'noopener noreferrer';
-      open.textContent = 'Open source ↗';
-      footer.append(state, open);
-      card.append(header, frameWrap, footer);
-      grid.append(card);
-    });
+  function showMessage(text, error = false) {
+    message.textContent = text;
+    message.className = 'message visible' + (error ? ' error' : ' success');
   }
 
-  addButton.addEventListener('click', () => {
-    const raw = urlInput.value.trim();
-    if (!raw) { showMessage('Paste a video URL first.', true); return; }
-    if (sources.length >= Number(gridSize.value)) {
-      showMessage('The selected grid is full. Increase its size or remove a player first.', true);
+  function updateMetrics(elapsed = null) {
+    $('requestedMetric').textContent = currentSource ? countInput.value : '—';
+    $('generatedMetric').textContent = panels.length ? panels.length : '—';
+    $('generatedDetail').textContent = panels.length ? 'Simulated panels created' : 'Waiting for test';
+    $('timeMetric').textContent = elapsed === null ? '—' : elapsed.toFixed(1) + ' ms';
+    const memory = performance && performance.memory ? performance.memory.usedJSHeapSize / (1024 * 1024) : null;
+    $('memoryMetric').textContent = memory === null ? 'N/A' : memory.toFixed(1) + ' MB';
+    $('panelCount').textContent = panels.length + ' PANELS';
+    $('clearPanels').disabled = panels.length === 0;
+  }
+
+  function makePanel(index) {
+    const card = document.createElement('article');
+    card.className = 'test-card';
+    const top = document.createElement('div');
+    top.className = 'test-card-top';
+    const number = document.createElement('strong');
+    number.textContent = 'SCREEN ' + String(index + 1).padStart(3, '0');
+    const status = document.createElement('span');
+    status.className = 'sim-status';
+    status.textContent = 'SIMULATED';
+    top.append(number, status);
+
+    const visual = document.createElement('div');
+    visual.className = 'sim-visual';
+    const play = document.createElement('span');
+    play.className = 'sim-play';
+    play.textContent = '▶';
+    const label = document.createElement('span');
+    label.className = 'sim-label';
+    label.textContent = currentSource.platform.toUpperCase() + ' · TEST PANEL';
+    visual.append(play, label);
+
+    const details = document.createElement('div');
+    details.className = 'test-card-details';
+    const loop = document.createElement('span');
+    loop.textContent = 'Loop: ' + (loopInput.value === 'true' ? 'On' : 'Off');
+    const mute = document.createElement('span');
+    mute.textContent = 'Mute: ' + (muteInput.value === 'true' ? 'On' : 'Off');
+    details.append(loop, mute);
+    card.append(top, visual, details);
+    return card;
+  }
+
+  function renderPanels() {
+    grid.replaceChildren();
+    grid.classList.toggle('empty-grid', panels.length === 0);
+    grid.classList.toggle('comfortable', $('density').value === 'comfortable');
+    if (!panels.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-workspace';
+      const icon = document.createElement('div');
+      icon.className = 'empty-symbol';
+      icon.textContent = '▦';
+      const title = document.createElement('h4');
+      title.textContent = 'No test panels generated';
+      const copy = document.createElement('p');
+      copy.textContent = 'Configure a video and press Load and Play to create the selected number of simulated panels.';
+      empty.append(icon, title, copy);
+      grid.append(empty);
       return;
     }
+    const fragment = document.createDocumentFragment();
+    panels.forEach((_, index) => fragment.append(makePanel(index)));
+    grid.append(fragment);
+  }
+
+  function setPreview(source) {
+    $('previewEmpty').hidden = true;
+    $('previewWrap').hidden = false;
+    $('videoPreview').src = embedUrl(source);
+  }
+
+  $('loadPlay').addEventListener('click', () => {
     try {
-      const source = parseSource(raw, platform.value);
-      if (sources.some(item => item.url === source.url)) {
-        showMessage('That video is already in this workspace. Add a different video URL.', true);
-        return;
-      }
-      source.localId = nextId++;
-      sources.push(source);
-      urlInput.value = '';
-      showMessage('Video source added. Press Play in the embedded player when you are ready.', false);
-      render();
+      const source = parseVideo(urlInput.value, platform.value);
+      const requested = Number(countInput.value);
+      if (![1, 10, 50, 100, 200].includes(requested)) throw new Error('Choose a supported panel count.');
+      currentSource = source;
+      panels.length = 0;
+      const start = performance.now();
+      for (let i = 0; i < requested; i++) panels.push(i);
+      const elapsed = performance.now() - start;
+      renderPanels();
+      setPreview(source);
+      updateMetrics(elapsed);
+      showMessage(requested + ' simulated panels generated. One manual ' + source.platform + ' embed preview is ready below. Playback is not started automatically.');
     } catch (error) {
       showMessage(error.message, true);
     }
   });
 
-  urlInput.addEventListener('keydown', event => {
-    if (event.key === 'Enter') addButton.click();
+  $('clearPanels').addEventListener('click', () => {
+    panels.length = 0;
+    currentSource = null;
+    renderPanels();
+    updateMetrics();
+    showMessage('Test panels cleared.');
   });
 
-  gridSize.addEventListener('change', () => {
-    if (sources.length > Number(gridSize.value)) {
-      showMessage('You already have ' + sources.length + ' players. Remove ' + (sources.length - Number(gridSize.value)) + ' to fit the selected grid.', true);
-    } else {
-      showMessage('Grid capacity set to ' + gridSize.value + ' distinct player(s).', false);
-    }
-    render();
+  $('reset').addEventListener('click', () => {
+    panels.length = 0;
+    currentSource = null;
+    urlInput.value = '';
+    countInput.value = '100';
+    loopInput.value = 'false';
+    muteInput.value = 'true';
+    $('videoPreview').src = 'about:blank';
+    $('previewWrap').hidden = true;
+    $('previewEmpty').hidden = false;
+    renderPanels();
+    updateMetrics();
+    showMessage('Test configuration reset.');
   });
 
-  $('clearAll').addEventListener('click', () => {
-    sources.splice(0, sources.length);
-    showMessage('Workspace cleared.', false);
-    render();
+  $('density').addEventListener('change', renderPanels);
+  countInput.addEventListener('change', () => {
+    if (currentSource) showMessage('Panel count changed. Press Load and Play to regenerate the test grid.');
   });
 
-  render();
+  renderPanels();
+  updateMetrics();
 })();
