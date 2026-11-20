@@ -16,29 +16,29 @@
     <a class="brand" href="/"><span class="brand-icon">W</span><span>watch<span class="brand-muted">viewer</span><small>VIDEO LOAD LAB</small></span></a>
     <div class="nav-label">TESTING</div>
     <div class="nav-link active"><span>▦</span> Panel simulator</div>
-    <div class="sidebar-info"><span class="status-dot"></span> LOCAL TEST SESSION<p>Stress-test your dashboard layout with up to 200 lightweight simulated player panels.</p></div>
+    <div class="sidebar-info"><span class="status-dot"></span> LOCAL TEST SESSION<p>Test a responsive panel layout or run multi-player playback tests with an authorized video file.</p></div>
     <div class="sidebar-foot">WATCH VIEWER <span>v3.0</span></div>
   </aside>
 
   <main class="main">
     <header class="topbar"><div><div class="eyebrow">VIDEO QUALITY TOOLKIT</div><h1>Video load lab</h1></div><div class="ready"><span class="status-dot"></span> Ready</div></header>
     <section class="hero">
-      <div><div class="eyebrow cyan">CONFIGURE · GENERATE · MEASURE</div><h2>One source.<br><span>Up to 200 test panels.</span></h2><p>Enter a YouTube or Facebook link, choose a panel count and playback-test settings, then generate a responsive panel grid and measure the UI rendering workload.</p></div>
+      <div><div class="eyebrow cyan">CONFIGURE · GENERATE · MEASURE</div><h2>One source.<br><span>Up to 200 test panels.</span></h2><p>Enter a platform link for a simulated layout, or a direct MP4/WebM/OGG file URL that you own or are authorized to test. Real video files can play in every selected panel with mute and loop settings.</p></div>
       <div class="hero-art" aria-hidden="true"><div class="hero-ring ring-a"></div><div class="hero-ring ring-b"></div><div class="hero-play">▶</div><i></i></div>
     </section>
 
     <section class="panel setup">
       <div class="panel-heading"><div><span class="step">01</span><h3>Video and test configuration</h3></div><span class="overline">LOAD TEST SETUP</span></div>
       <div class="form-grid">
-        <div><label for="platform">Platform</label><select id="platform"><option value="youtube">YouTube</option><option value="facebook">Facebook</option></select></div>
-        <div class="url-field"><label for="videoUrl">Video URL</label><input id="videoUrl" type="url" placeholder="Paste your YouTube or Facebook video link" autocomplete="url"></div>
+        <div><label for="platform">Platform</label><select id="platform"><option value="youtube">YouTube</option><option value="facebook">Facebook (single preview)</option><option value="mp4">Owned / authorized MP4, WebM or OGG file (multi-screen)</option></select></div>
+        <div class="url-field"><label for="videoUrl">Video URL</label><input id="videoUrl" type="url" placeholder="Paste a platform link or direct authorized video-file URL" autocomplete="url"></div>
       </div>
       <div class="config-grid">
         <div><label for="screenCount">Number of screens</label><select id="screenCount"><option value="1">1 screen</option><option value="10">10 screens</option><option value="50">50 screens</option><option value="100" selected>100 screens</option><option value="200">200 screens</option></select></div>
         <div><label for="loopMode">Loop setting</label><select id="loopMode"><option value="false">False — play once</option><option value="true">True — loop requested</option></select></div>
         <div><label for="muteMode">Mute setting</label><select id="muteMode"><option value="true" selected>True — muted</option><option value="false">False — sound on</option></select></div>
       </div>
-      <div class="actions"><button id="loadPlay" class="btn primary">Load and Play <span>↗</span></button><button id="reset" class="btn subtle">Reset</button><span class="helper">Panels are simulated; only one optional manual embed preview is loaded.</span></div>
+      <div class="actions"><button id="loadPlay" class="btn primary">Load and Play <span>↗</span></button><button id="reset" class="btn subtle">Reset</button><span class="helper">Direct authorized video files create real players in every panel. YouTube/Facebook remain single manual previews.</span></div>
       <div id="message" class="message" role="status" aria-live="polite"></div>
     </section>
 
@@ -55,16 +55,16 @@
         <div class="grid-tools"><label for="density">Panel density</label><select id="density"><option value="compact" selected>Compact</option><option value="comfortable">Comfortable</option></select><button id="clearPanels" class="btn subtle" disabled>Clear panels</button></div>
       </div>
       <div id="playerGrid" class="player-grid empty-grid">
-        <div class="empty-workspace"><div class="empty-symbol">▦</div><h4>No test panels generated</h4><p>Configure a video and press Load and Play to create the selected number of simulated panels.</p></div>
+        <div class="empty-workspace"><div class="empty-symbol">▦</div><h4>No test panels generated</h4><p>Choose an authorized video file for real multi-screen playback, or a platform link for a simulated layout.</p></div>
       </div>
-      <div class="workspace-note"><span>ⓘ</span><p>These are lightweight simulated UI panels, not 100–200 real video streams. They do not autoplay, loop, or create platform views. Platform restrictions and browser autoplay rules still apply.</p></div>
+      <div class="workspace-note"><span>ⓘ</span><p>For direct MP4/WebM/OGG sources, each panel contains a real HTML video player using the same URL, mute and loop settings. Large player counts can overwhelm browser, network or device resources; autoplay may be blocked. YouTube/Facebook panels are simulations with one manual preview only.</p></div>
     </section>
 
     <section class="panel preview-panel">
-      <div class="panel-heading"><div><span class="step">03</span><h3>Single-source embed preview</h3></div><span class="overline">MANUAL PLAYBACK</span></div>
-      <div id="previewEmpty" class="preview-empty">A single embed preview will appear here after you generate the test panels. Start playback manually using the platform's own controls.</div>
+      <div class="panel-heading"><div><span class="step">03</span><h3>Platform embed preview</h3></div><span class="overline">MANUAL PLAYBACK</span></div>
+      <div id="previewEmpty" class="preview-empty">Platform preview appears here after generating panels. Start playback manually using the platform controls.</div>
       <div id="previewWrap" class="preview-wrap" hidden><iframe id="videoPreview" title="Single video embed preview" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
-      <p class="preview-caption">The preview is one player only. It is not duplicated into the simulated panel grid. Some videos do not allow embedding.</p>
+      <p class="preview-caption">YouTube/Facebook are previewed in one manual player only. Real multi-screen playback is available for direct video files you are authorized to test. Some platform videos do not allow embedding.</p>
     </section>
     <footer>WATCH VIEWER <span>•</span> UI load testing · Simulated panels · Manual single-player preview</footer>
   </main>
