@@ -1,21 +1,25 @@
 (() => {
-    const urlInput = document.getElementById('videoUrl');
-    const loadButton = document.getElementById('loadButton');
-    const video = document.getElementById('videoPlayer');
-    const emptyState = document.getElementById('emptyState');
-    const loopToggle = document.getElementById('loopToggle');
-    const browserSelect = document.getElementById('browserSelect');
-    const message = document.getElementById('validationMessage');
-    const log = document.getElementById('eventLog');
+    const $ = (id) => document.getElementById(id);
+    const urlInput = $('videoUrl');
+    const loadButton = $('loadButton');
+    const startButton = $('startButton');
+    const reloadButton = $('reloadButton');
+    const stopButton = $('stopButton');
+    const durationSelect = $('durationSelect');
+    const playerHost = $('youtubePlayer');
+    const emptyState = $('emptyState');
+    const message = $('validationMessage');
+    const log = $('eventLog');
 
-    const el = (id) => document.getElementById(id);
+    let player = null;
+    let videoId = null;
+    let apiReady = false;
+    let sessionDeadline = null;
+    let countdownHandle = null;
     let hasLog = false;
 
     function addLog(text, isError = false) {
-        if (!hasLog) {
-            log.innerHTML = '';
-            hasLog = true;
-        }
+        if (!hasLog) { log.innerHTML = ''; hasLog = true; }
         const row = document.createElement('div');
         row.className = 'log-entry' + (isError ? ' error' : '');
         const time = document.createElement('time');
@@ -27,7 +31,7 @@
     }
 
     function setCheck(id, state) {
-        const node = el(id);
+        const node = $(id);
         node.textContent = state;
         node.className = 'check-status' + (state === 'Passed' ? ' pass' : state === 'Failed' ? ' fail' : '');
     }
@@ -42,144 +46,222 @@
             : [minutes, secs].map(v => String(v).padStart(2, '0')).join(':');
     }
 
-    async function validateUrl(url) {
-        const response = await fetch('/api/videos/validate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
+    function parseYouTubeId(raw) {
+        try {
+            const url = new URL(raw);
+            const host = url.hostname.toLowerCase().replace(/^www\./, '');
+            if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0] || null;
+            if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
+                if (url.pathname === '/watch') return url.searchParams.get('v');
+                const parts = url.pathname.split('/').filter(Boolean);
+                if (['embed', 'shorts', 'live'].includes(parts[0])) return parts[1] || null;
+            }
+        } catch (_) { return null; }
+        return null;
+    }
+
+    function stopCountdown() {
+        if (countdownHandle) window.clearInterval(countdownHandle);
+        countdownHandle = null;
+        sessionDeadline = null;
+    }
+
+    function finishTest(reason) {
+        stopCountdown();
+        if (player && typeof player.pauseVideo === 'function') player.pauseVideo();
+        $('playState').textContent = reason;
+        $('timeRemaining').textContent = '00:00';
+        startButton.disabled = !player;
+        stopButton.disabled = true;
+        addLog(reason === 'Test complete' ? 'Configured test duration completed; playback paused.' : 'Test stopped by user.');
+    }
+
+    function startCountdown() {
+        if (sessionDeadline !== null) return;
+        const durationMs = Number(durationSelect.value) * 60 * 1000;
+        sessionDeadline = Date.now() + durationMs;
+        $('timeRemaining').textContent = formatTime(durationMs / 1000);
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        addLog('Timed playback test started for ' + durationSelect.options[durationSelect.selectedIndex].text + '.');
+        countdownHandle = window.setInterval(() => {
+            const remaining = Math.max(0, Math.ceil((sessionDeadline - Date.now()) / 1000));
+            $('timeRemaining').textContent = formatTime(remaining);
+            if (remaining <= 0) finishTest('Test complete');
+        }, 250);
+    }
+
+    function ensureYouTubeApi() {
+        if (window.YT && window.YT.Player) {
+            apiReady = true;
+            return Promise.resolve();
+        }
+        return new Promise((resolve, reject) => {
+            const previous = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (typeof previous === 'function') previous();
+                apiReady = true;
+                resolve();
+            };
+            if (!$('youtube-iframe-api')) {
+                const script = document.createElement('script');
+                script.id = 'youtube-iframe-api';
+                script.src = 'https://www.youtube.com/iframe_api';
+                script.onerror = () => reject(new Error('Could not load the YouTube player API. Check your internet connection.'));
+                document.head.appendChild(script);
+            }
         });
-        if (!response.ok) throw new Error('The server could not validate this URL.');
-        return response.json();
+    }
+
+    function createPlayer(id) {
+        if (player && typeof player.destroy === 'function') player.destroy();
+        playerHost.innerHTML = '';
+        playerHost.hidden = false;
+        emptyState.hidden = true;
+        const frame = document.createElement('div');
+        frame.id = 'youtube-player-frame';
+        playerHost.appendChild(frame);
+        player = new YT.Player('youtube-player-frame', {
+            width: '100%',
+            height: '100%',
+            videoId: id,
+            playerVars: { playsinline: 1, rel: 0, controls: 1 },
+            events: {
+                onReady: () => {
+                    $('playerBadge').textContent = 'PLAYER READY';
+                    $('playerBadge').classList.add('ready');
+                    $('playState').textContent = 'Ready';
+                    $('duration').textContent = formatTime(player.getDuration());
+                    startButton.disabled = false;
+                    reloadButton.disabled = false;
+                    setCheck('metadataCheck', 'Passed');
+                    addLog('YouTube player is ready. Press Start timed test to begin.');
+                },
+                onStateChange: (event) => {
+                    const states = window.YT.PlayerState;
+                    if (event.data === states.PLAYING) {
+                        $('playState').textContent = 'Playing';
+                        setCheck('playCheck', 'Passed');
+                        if (sessionDeadline === null) startCountdown();
+                    } else if (event.data === states.PAUSED) {
+                        $('playState').textContent = 'Paused';
+                    } else if (event.data === states.BUFFERING) {
+                        $('playState').textContent = 'Buffering';
+                    } else if (event.data === states.ENDED) {
+                        $('playState').textContent = 'Video ended';
+                        addLog('Video ended before the selected test duration. No automatic replay was started.');
+                    } else if (event.data === states.CUED) {
+                        $('playState').textContent = 'Ready';
+                    }
+                },
+                onError: (event) => {
+                    $('playerBadge').textContent = 'PLAYER ERROR';
+                    $('playerBadge').classList.remove('ready');
+                    $('playState').textContent = 'Error ' + event.data;
+                    setCheck('playCheck', 'Failed');
+                    addLog('YouTube player error ' + event.data + '. The video may be unavailable or embedding may be disabled.', true);
+                }
+            }
+        });
     }
 
     loadButton.addEventListener('click', async () => {
-        const url = urlInput.value.trim();
+        const raw = urlInput.value.trim();
         message.className = 'validation-message';
         message.textContent = '';
-        if (!url) {
-            message.textContent = 'Enter a video file URL first.';
+        const parsedId = parseYouTubeId(raw);
+        if (!parsedId || !/^[A-Za-z0-9_-]{11}$/.test(parsedId)) {
+            message.textContent = 'Enter a valid YouTube watch, youtu.be, Shorts, or live video URL.';
             message.classList.add('error');
+            setCheck('urlCheck', 'Failed');
+            addLog('Invalid YouTube URL.', true);
             return;
         }
 
         loadButton.disabled = true;
-        loadButton.textContent = 'Validating…';
+        loadButton.textContent = 'Loading…';
         try {
-            const result = await validateUrl(url);
-            if (!result.valid) {
-                message.textContent = result.message;
-                message.classList.add('error');
-                setCheck('urlCheck', 'Failed');
-                addLog(result.message, true);
-                return;
-            }
-
-            const extensionPath = new URL(result.normalizedUrl).pathname.toLowerCase();
-            if (!/\.(mp4|webm|ogv|ogg|m4v)$/i.test(extensionPath)) {
-                message.textContent = 'URL syntax is valid, but it does not look like a direct video file. Use a direct .mp4, .webm or .ogg URL.';
-                message.classList.add('error');
-                setCheck('urlCheck', 'Passed');
-                addLog('URL validated, but the path does not have a common video-file extension.', true);
-                return;
-            }
-
-            video.pause();
-            video.removeAttribute('src');
-            video.load();
-            video.src = result.normalizedUrl;
-            video.loop = loopToggle.checked;
-            video.hidden = false;
-            emptyState.hidden = true;
-            el('playerBadge').textContent = 'LOADING MEDIA';
-            el('playerBadge').classList.remove('ready');
-            el('playState').textContent = 'Loading';
+            stopCountdown();
+            videoId = parsedId;
             setCheck('urlCheck', 'Passed');
             setCheck('metadataCheck', 'Pending');
             setCheck('playCheck', 'Pending');
-            message.textContent = result.message + ' Press play if playback does not start automatically.';
-            addLog('URL validated. Loading media in the current browser session.');
-            video.load();
-            const playAttempt = video.play();
-            if (playAttempt && typeof playAttempt.catch === 'function') {
-                playAttempt.catch(() => {
-                    el('playState').textContent = 'Ready — press play';
-                    addLog('Autoplay was blocked by the browser. Press the player play button.', true);
-                });
-            }
+            $('playerBadge').textContent = 'LOADING PLAYER';
+            $('playerBadge').classList.remove('ready');
+            $('playState').textContent = 'Loading';
+            $('timeRemaining').textContent = '--:--';
+            message.textContent = 'Video link recognized. Initializing the embedded YouTube player.';
+            await ensureYouTubeApi();
+            createPlayer(videoId);
+            addLog('YouTube URL recognized. Creating one embedded player in this tab.');
         } catch (error) {
-            message.textContent = error.message || 'Unexpected validation error.';
+            message.textContent = error.message || 'Unable to initialize the player.';
             message.classList.add('error');
-            addLog(error.message || 'Validation error', true);
+            addLog(error.message || 'Player initialization failed.', true);
         } finally {
             loadButton.disabled = false;
-            loadButton.innerHTML = 'Load &amp; play <span>↗</span>';
+            loadButton.innerHTML = 'Load video <span>↗</span>';
         }
     });
 
-    video.addEventListener('loadedmetadata', () => {
-        el('duration').textContent = formatTime(video.duration);
-        el('playerBadge').textContent = 'MEDIA READY';
-        el('playerBadge').classList.add('ready');
-        el('playState').textContent = 'Ready';
-        setCheck('metadataCheck', 'Passed');
-        addLog('Media metadata loaded. Duration: ' + formatTime(video.duration));
-    });
-    video.addEventListener('playing', () => {
-        el('playState').textContent = 'Playing';
-        setCheck('playCheck', 'Passed');
-        addLog('Playback started.');
-    });
-    video.addEventListener('pause', () => {
-        if (!video.ended && video.currentTime > 0) {
-            el('playState').textContent = 'Paused';
-            addLog('Playback paused.');
-        }
-    });
-    video.addEventListener('waiting', () => {
-        el('playState').textContent = 'Buffering';
-        addLog('Buffering…');
-    });
-    video.addEventListener('ended', () => {
-        el('playState').textContent = video.loop ? 'Looping' : 'Ended';
-        addLog(video.loop ? 'Playback reached the end; loop mode is enabled.' : 'Playback ended.');
-    });
-    video.addEventListener('error', () => {
-        const mediaError = video.error;
-        const details = mediaError ? 'Media error code ' + mediaError.code : 'Unknown media error';
-        el('playState').textContent = 'Error';
-        el('playerBadge').textContent = 'MEDIA ERROR';
-        el('playerBadge').classList.remove('ready');
-        setCheck('metadataCheck', 'Failed');
-        setCheck('playCheck', 'Failed');
-        addLog(details + '. Check the file URL, server permissions, MIME type and CORS settings.', true);
-    });
-    video.addEventListener('timeupdate', () => {
-        el('currentTime').textContent = formatTime(video.currentTime);
-        el('duration').textContent = formatTime(video.duration);
+    startButton.addEventListener('click', () => {
+        if (!player) return;
+        if (sessionDeadline === null) startCountdown();
+        player.playVideo();
+        stopButton.disabled = false;
+        startButton.disabled = true;
     });
 
-    loopToggle.addEventListener('change', () => {
-        video.loop = loopToggle.checked;
-        el('loopState').textContent = loopToggle.checked ? 'On' : 'Off';
-        addLog('Loop mode ' + (loopToggle.checked ? 'enabled' : 'disabled') + '.');
+    stopButton.addEventListener('click', () => {
+        if (!player) return;
+        finishTest('Stopped');
     });
 
-    browserSelect.addEventListener('change', () => {
+    reloadButton.addEventListener('click', () => {
+        if (!videoId) return;
+        stopCountdown();
+        $('timeRemaining').textContent = '--:--';
+        $('playState').textContent = 'Reloading player';
+        startButton.disabled = true;
+        stopButton.disabled = true;
+        addLog('Player manually reloaded. Press Start timed test to play again.');
+        createPlayer(videoId);
+    });
+
+    durationSelect.addEventListener('change', () => {
+        $('testDuration').textContent = durationSelect.value === '60' ? '1 hour' : durationSelect.value + ' min';
+        addLog('Test duration set to ' + durationSelect.options[durationSelect.selectedIndex].text + '.');
+    });
+
+    $('browserSelect').addEventListener('change', () => {
         const notes = {
-            current: 'Playback runs in the browser currently hosting this app.',
-            chrome: 'Chrome profile selected. Open this app in Chrome to run the actual test there.',
-            edge: 'Edge profile selected. Open this app in Edge to run the actual test there.',
-            firefox: 'Firefox profile selected. Open this app in Firefox to run the actual test there.',
-            safari: 'Safari profile selected. Open this app in Safari to run the actual test there.'
+            current: 'The player runs in the browser currently hosting this app.',
+            chrome: 'Chrome profile selected. Open this app in Chrome to run the test there.',
+            edge: 'Edge profile selected. Open this app in Edge to run the test there.',
+            firefox: 'Firefox profile selected. Open this app in Firefox to run the test there.',
+            safari: 'Safari profile selected. Open this app in Safari to run the test there.'
         };
-        el('browserNote').textContent = notes[browserSelect.value];
-        addLog('Target profile changed to ' + browserSelect.options[browserSelect.selectedIndex].text + '. This does not launch another browser.');
+        $('browserNote').textContent = notes[$('browserSelect').value];
+        addLog('Compatibility profile changed to ' + $('browserSelect').options[$('browserSelect').selectedIndex].text + '. It does not launch another browser.');
     });
 
-    el('clearLog').addEventListener('click', () => {
+    window.setInterval(() => {
+        if (player && typeof player.getCurrentTime === 'function') {
+            try {
+                $('currentTime').textContent = formatTime(player.getCurrentTime());
+                const length = player.getDuration();
+                if (length > 0) $('duration').textContent = formatTime(length);
+            } catch (_) { /* Player may still be initializing. */ }
+        }
+    }, 1000);
+
+    $('clearLog').addEventListener('click', () => {
         log.innerHTML = '<div class="log-empty">No events yet. Load a video to begin.</div>';
         hasLog = false;
     });
 
-    el('loopState').textContent = 'Off';
+    $('testDuration').textContent = durationSelect.value + ' min';
+
+    // Load the official YouTube IFrame Player API once and resolve the pending initializer.
+    ensureYouTubeApi().catch(error => addLog(error.message, true));
 })();
