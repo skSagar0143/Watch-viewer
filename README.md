@@ -1,25 +1,22 @@
-# Watch Viewer 2.0 — Multi-source Video QA Studio
+# Watch Viewer 3.0 — Video Load Lab
 
-Watch Viewer is a Java 21 / Spring Boot dashboard for inspecting multiple distinct YouTube and Facebook embeds in one responsive workspace.
+Watch Viewer is a Java 21 / Spring Boot dashboard for testing how a browser handles a large grid of lightweight video-panel UI components.
 
 ## Features
-- Add YouTube watch, youtu.be, Shorts, live, and supported Facebook video / Watch / Reel / fb.watch links.
-- Choose the platform before adding a source.
-- Display up to 4 distinct video sources as mini embedded players in one grid.
-- Choose a grid capacity of 1, 2, 3, or 4 players.
-- Remove individual players or clear the workspace.
-- Open the original video in a separate tab.
-- Responsive layout for desktop and mobile.
-- Uses official YouTube embed URLs and Facebook's embedded video plugin; playback and player controls are provided by the platforms.
+- Paste a YouTube or Facebook video URL and select the matching platform.
+- Select 1, 10, 50, 100, or 200 simulated screen panels.
+- Configure Loop true/false and Mute true/false as test settings displayed on every simulated panel.
+- Generate the complete panel grid with one **Load and generate panels** action.
+- Measure panel-generation time and display JavaScript heap usage where the browser exposes it.
+- Change panel density, clear the generated panels, or reset the configuration.
+- Load one optional real YouTube/Facebook embed preview for manual compatibility testing.
 
-## Important playback and platform limitations
-- This is a manual playback QA tool, not a view, watch-time, or engagement generator.
-- Players do not autoplay, auto-loop, refresh, or duplicate a source. Start and control each video manually using the embedded platform controls.
-- A video must allow embedding. Age, region, privacy, account, publisher, or platform restrictions may prevent playback.
-- Facebook may block embedding for some videos or require the viewer to be logged in.
-- YouTube and Facebook decide independently how views and engagement are measured. Embedding a video does not guarantee that a view is counted.
-- The grid is intentionally limited to 4 distinct sources to avoid excessive browser, CPU, memory, and network use. Actual capacity depends on the device and video resolution.
-- The application does not bypass platform restrictions, authentication, browser autoplay policies, or popup restrictions.
+## Important distinction: simulated panels vs real video streams
+The 1–200 grid is a UI/load simulation. It creates lightweight HTML panels that represent player slots; it does **not** create 100–200 real third-party video streams. The loop and mute choices are shown as test configuration on those simulated slots and are not applied as automated playback commands to a fleet of embeds.
+
+The single embed preview is loaded separately and must be started manually with the platform's native controls. It is configured not to autoplay. YouTube's embed preview requests muted playback by default; Facebook controls its own player behaviour. Platform restrictions, privacy settings, region rules, browser policies, and embed permissions can prevent a video from loading.
+
+This tool does not automate mass playback, looping, refreshes, or view/watch-time generation.
 
 ## Technology
 - Java 21
@@ -32,7 +29,7 @@ Watch Viewer is a Java 21 / Spring Boot dashboard for inspecting multiple distin
 ## Requirements
 - JDK 21+
 - Maven 3.9+
-- Internet connection for embedded platform players
+- Internet connection for the optional platform embed preview
 
 ## Run locally
 ~~~bash
@@ -56,11 +53,14 @@ src/
   main/
     java/com/watchviewer/
       WatchViewerApplication.java
+      controller/PageController.java
     resources/
       application.properties
       templates/index.html
       static/css/app.css
       static/js/app.js
+  test/
+    java/com/watchviewer/controller/PageControllerTest.java
 .github/workflows/maven.yml
 pom.xml
 ~~~
